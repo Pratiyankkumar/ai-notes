@@ -12,24 +12,15 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@workspace/ui/components/dialog";
-import { Pen, ImageIcon, X, Mic, MicOff, Play, Pause } from "lucide-react";
+import { Pen, ImageIcon, X, Mic, MicOff } from "lucide-react";
 import { cn } from "@workspace/ui/lib/utils";
 import { Toast } from "@workspace/ui/components/toast";
-
-interface AudioWaveformProps {
-  audioChunks: Blob[];
-  isRecording: boolean;
-}
-
-interface AudioWaveformProps {
-  audioChunks: Blob[];
-}
 
 // Define types for Web Speech API
 interface SpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList;
   resultIndex: number;
-  error?: any;
+  error?: unknown;
 }
 
 interface SpeechRecognitionResult {
@@ -65,65 +56,6 @@ declare global {
   }
 }
 
-const AudioWaveform: React.FC<AudioWaveformProps> = ({
-  audioChunks,
-  isRecording,
-}) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationFrameRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-
-    if (!canvas || !context) return;
-
-    const drawWaveform = () => {
-      if (!isRecording) return;
-
-      context.clearRect(0, 0, canvas.width, canvas.height);
-      context.fillStyle = "rgba(255, 0, 0, 0.5)";
-
-      const centerY = canvas.height / 2;
-      const width = canvas.width;
-
-      context.beginPath();
-      context.moveTo(0, centerY);
-
-      // Use a sine wave for a more natural, slower animation
-      for (let x = 0; x < width; x++) {
-        const amplitude = Math.sin(x * 0.05 + Date.now() * 0.01) * 20;
-        context.lineTo(x, centerY + amplitude);
-      }
-
-      context.strokeStyle = "red";
-      context.lineWidth = 2;
-      context.stroke();
-
-      animationFrameRef.current = requestAnimationFrame(drawWaveform);
-    };
-
-    if (isRecording) {
-      drawWaveform();
-    }
-
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
-  }, [isRecording]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      width={400}
-      height={100}
-      className="w-full bg-gray-100 rounded-lg"
-    />
-  );
-};
-
 export default function VoiceNoteInput() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -134,12 +66,10 @@ export default function VoiceNoteInput() {
   const [titleError, setTitleError] = useState(false);
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const audioPlayerRef = useRef<HTMLAudioElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const audioRecorderRef = useRef<MediaRecorder | null>(null);
@@ -246,24 +176,6 @@ export default function VoiceNoteInput() {
     };
   }, [isRecording]);
 
-  // Audio Playback Control
-  const toggleAudioPlayback = () => {
-    const audioElement = audioPlayerRef.current;
-    if (!audioElement) return;
-
-    if (isPlaying) {
-      audioElement.pause();
-      setIsPlaying(false);
-    } else {
-      audioElement.play();
-      setIsPlaying(true);
-    }
-  };
-
-  const handleAudioEnded = () => {
-    setIsPlaying(false);
-  };
-
   const handleSubmit = () => {
     if (!title.trim()) {
       setTitleError(true);
@@ -295,6 +207,17 @@ export default function VoiceNoteInput() {
   };
 
   const handleClose = () => {
+    const noteData = {
+      title: title.trim(),
+      content: note,
+      image: selectedImage,
+      audioBlob:
+        audioChunks.length > 0
+          ? new Blob(audioChunks, { type: "audio/webm" })
+          : null,
+      timestamp: new Date().toISOString(),
+    };
+
     setTitle("");
     setNote("");
     setSelectedImage(null);
@@ -302,7 +225,6 @@ export default function VoiceNoteInput() {
     setAudioUrl(null);
     setIsDialogOpen(false);
     setIsRecording(false);
-    console.log("Closed");
   };
 
   const toggleRecording = () => {
@@ -455,30 +377,12 @@ export default function VoiceNoteInput() {
             </div>
 
             {/* Waveform and Audio Playback */}
-            {isRecording && (
+            {/* {isRecording && (
               <AudioWaveform
                 audioChunks={audioChunks}
                 isRecording={isRecording}
               />
-            )}
-
-            {audioUrl && (
-              <div className="flex items-center space-x-2 mt-4">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleAudioPlayback}
-                >
-                  {isPlaying ? <Pause /> : <Play />}
-                </Button>
-                <audio
-                  ref={audioPlayerRef}
-                  src={audioUrl}
-                  onEnded={handleAudioEnded}
-                />
-                <span>{isPlaying ? "Playing" : "Audio Recorded"}</span>
-              </div>
-            )}
+            )} */}
           </div>
           <DialogFooter>
             <Button type="submit" onClick={handleSubmit}>
