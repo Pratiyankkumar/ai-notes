@@ -9,6 +9,7 @@ export const notes = [
     audioUrl:
       "https://file-examples.com/storage/fed070a54267a0d1f9ebf9a/2017/11/file_example_MP3_700KB.mp3",
     favorite: false,
+    id: 1,
   },
   {
     title: "Random Sequence",
@@ -16,5 +17,6 @@ export const notes = [
     date: "Jan 30, 2025 · 5:21 PM",
     type: "text" as const,
     favorite: true,
+    id: 2,
   },
 ];

@@ -1,5 +1,4 @@
 "use client";
-
 import { cn } from "@workspace/ui/lib/utils";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -12,7 +11,7 @@ import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
 import Link from "next/link";
 
-export function LoginForm({
+export function SignupForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
@@ -20,7 +19,7 @@ export function LoginForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">Welcome back</CardTitle>
+          <CardTitle className="text-xl">Welcome !</CardTitle>
         </CardHeader>
         <CardContent>
           <form>
@@ -31,6 +30,15 @@ export function LoginForm({
                 </span>
               </div>
               <div className="grid gap-6">
+                <div className="grid gap-2">
+                  <Label htmlFor="email">Name</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Your name"
+                    required
+                  />
+                </div>
                 <div className="grid gap-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
@@ -43,23 +51,17 @@ export function LoginForm({
                 <div className="grid gap-2">
                   <div className="flex items-center">
                     <Label htmlFor="password">Password</Label>
-                    <a
-                      href="#"
-                      className="ml-auto text-sm underline-offset-4 hover:underline"
-                    >
-                      Forgot your password?
-                    </a>
                   </div>
                   <Input id="password" type="password" required />
                 </div>
                 <Button type="submit" className="w-full">
-                  Login
+                  Create Account
                 </Button>
               </div>
               <div className="text-center text-sm">
-                Don&apos;t have an account?{" "}
-                <Link href="/signup" className="underline underline-offset-4">
-                  Sign up
+                Already have a Account?{" "}
+                <Link href="/login" className="underline underline-offset-4">
+                  Login
                 </Link>
               </div>
             </div>
