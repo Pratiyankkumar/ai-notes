@@ -1,14 +1,4 @@
-import {
-  Home,
-  Star,
-  Search,
-  SlidersHorizontal,
-  Menu,
-  LogOut,
-  User,
-} from "lucide-react";
-import { Input } from "@workspace/ui/components/input";
-import { Button } from "@workspace/ui/components/button";
+import { Home, Star, Menu, LogOut, User } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
