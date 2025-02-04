@@ -225,6 +225,8 @@ export default function VoiceNoteInput() {
     setAudioUrl(null);
     setIsDialogOpen(false);
     setIsRecording(false);
+
+    console.log(noteData);
   };
 
   const toggleRecording = () => {

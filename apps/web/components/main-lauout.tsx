@@ -14,11 +14,12 @@ import {
   SidebarTrigger,
 } from "@workspace/ui/components/sidebar";
 import type React from "react";
+import Link from "next/link";
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen justify-center w-full">
         {/* Collapsible Sidebar */}
         <Sidebar collapsible="offcanvas">
           <SidebarHeader className="border-b p-4">
@@ -32,19 +33,19 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
           <SidebarContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive>
-                  <a href="#" className="flex items-center gap-2">
+                <SidebarMenuButton asChild>
+                  <Link href="/" className="flex items-center gap-2">
                     <Home className="h-4 w-4" />
                     <span>Home</span>
-                  </a>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <a href="#" className="flex items-center gap-2">
+                  <Link href="/favorite" className="flex items-center gap-2">
                     <Star className="h-4 w-4" />
                     <span>Favourites</span>
-                  </a>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -52,7 +53,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
         </Sidebar>
 
         <div className="flex-1">
-          <header className="flex items-center gap-4 border-b p-4">
+          <header className="flex items-center gap-4 justify-center p-4">
             {/* Mobile Menu Trigger */}
             <SidebarTrigger className="md:hidden">
               <Menu className="h-4 w-4" />
