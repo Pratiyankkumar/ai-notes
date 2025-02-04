@@ -1,27 +1,29 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+"use client";
+
+import { Geist, Geist_Mono } from "next/font/google";
 import "@workspace/ui/globals.css";
-import { MainLayout } from "@/components/main-lauout";
-import type React from "react"; // Added import for React
-import InputWithActions from "@/components/input";
 
-const inter = Inter({ subsets: ["latin"] });
+const fontSans = Geist({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
 
-export const metadata: Metadata = {
-  title: "AI Notes",
-  description: "An AI-powered note-taking application",
-};
+const fontMono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+});
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <MainLayout>{children}</MainLayout>
-        <InputWithActions />
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={`${fontSans.variable} ${fontMono.variable} font-sans antialiased`}
+      >
+        {children}
       </body>
     </html>
   );

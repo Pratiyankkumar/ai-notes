@@ -34,7 +34,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link href="/" className="flex items-center gap-2">
+                  <Link href="/home" className="flex items-center gap-2">
                     <Home className="h-4 w-4" />
                     <span>Home</span>
                   </Link>
