@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardFooter } from "@workspace/ui/components/card";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -14,7 +14,6 @@ import {
   Edit,
   Eye,
   Expand,
-  Image,
   Maximize2,
   MoreHorizontal,
   Play,
@@ -23,6 +22,9 @@ import {
   Trash,
   Upload,
   X,
+  ChevronLeft,
+  ChevronRight,
+  Image,
 } from "lucide-react";
 import TextEditor from "./editor";
 
@@ -60,6 +62,10 @@ export function NoteCard({
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState<string>("00:00");
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(
+    null
+  );
+  const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -165,6 +171,36 @@ export function NoteCard({
     });
   }
 
+  const openImageViewer = (index: number) => {
+    if (!isEditing) {
+      setSelectedImageIndex(index);
+      setIsImageViewerOpen(true);
+    }
+  };
+
+  const closeImageViewer = () => {
+    setIsImageViewerOpen(false);
+    setSelectedImageIndex(null);
+  };
+
+  const navigateImage = (direction: "prev" | "next") => {
+    if (selectedImageIndex === null || !noteImages.length) return;
+
+    let newIndex;
+    if (direction === "prev") {
+      newIndex =
+        selectedImageIndex === 0
+          ? noteImages.length - 1
+          : selectedImageIndex - 1;
+    } else {
+      newIndex =
+        selectedImageIndex === noteImages.length - 1
+          ? 0
+          : selectedImageIndex + 1;
+    }
+    setSelectedImageIndex(newIndex);
+  };
+
   return (
     <>
       <Card
@@ -225,11 +261,11 @@ export function NoteCard({
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent
           className={`
-            max-w-3xl p-0 
+            max-w-3xl max-h-[100vh] p-0 overflow-y-auto
             ${isFullScreen ? "!max-w-full !h-screen !rounded-none" : ""}
           `}
         >
-          <DialogHeader className="flex flex-row items-center justify-between p-4">
+          <DialogHeader className="flex flex-row items-center justify-between p-4 overflow-y-auto">
             <div className="flex items-center fixed top-2 right-[44px] gap-2">
               <Button
                 size="icon"
@@ -248,6 +284,26 @@ export function NoteCard({
               </Button>
             </div>
           </DialogHeader>
+
+          {!isEditing && noteImages.length > 0 && (
+            <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 p-6">
+              {noteImages.map((image, index) => (
+                <div
+                  key={index}
+                  className="relative group cursor-pointer"
+                  onClick={() => openImageViewer(index)}
+                >
+                  <div className="aspect-square rounded-lg overflow-hidden">
+                    <img
+                      src={image}
+                      alt={`Note attachment ${index + 1}`}
+                      className="w-full h-full object-cover hover:opacity-90 transition-opacity"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="p-6">
             <div className="flex justify-between items-center mb-4">
@@ -375,33 +431,87 @@ export function NoteCard({
                 ))}
               </div>
             )}
+            <div className="w-full flex flex-row justify-between">
+              {isEditing && noteImages.length < 5 && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4 mr-2"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="h-4 w-4 mr-2" /> Upload Image
+                  </Button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageUpload}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                </>
+              )}
+              <Button
+                onClick={handleSave}
+                variant={"default"}
+                size={"default"}
+                className="mt-4"
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-            {isEditing && noteImages.length < 5 && (
-              <div className="w-full flex flex-row justify-between">
+      <Dialog open={isImageViewerOpen} onOpenChange={closeImageViewer}>
+        <DialogContent className="max-w-4xl p-0 bg-black/90">
+          <div className="relative w-full h-[80vh] flex items-center justify-center">
+            {selectedImageIndex !== null && noteImages[selectedImageIndex] && (
+              <>
                 <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-4 mr-2"
-                  onClick={() => fileInputRef.current?.click()}
+                  variant="ghost"
+                  size="icon"
+                  className="absolute left-4 text-white hover:bg-white/20"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigateImage("prev");
+                  }}
                 >
-                  <Upload className="h-4 w-4 mr-2" /> Upload Image
+                  <ChevronLeft className="h-8 w-8" />
                 </Button>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleImageUpload}
-                  accept="image/*"
-                  className="hidden"
+
+                <img
+                  src={noteImages[selectedImageIndex]}
+                  alt={`Note attachment ${selectedImageIndex + 1}`}
+                  className="max-h-full max-w-full object-contain"
                 />
+
                 <Button
-                  onClick={handleSave}
-                  variant={"default"}
-                  size={"default"}
-                  className="mt-4"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-4 text-white hover:bg-white/20"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigateImage("next");
+                  }}
                 >
-                  Save
+                  <ChevronRight className="h-8 w-8" />
                 </Button>
-              </div>
+
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white">
+                  {selectedImageIndex + 1} / {noteImages.length}
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-4 right-4 text-white hover:bg-white/20"
+                  onClick={closeImageViewer}
+                >
+                  <X className="h-6 w-6" />
+                </Button>
+              </>
             )}
           </div>
         </DialogContent>
