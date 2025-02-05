@@ -18,6 +18,7 @@ import {
 import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar";
 import type React from "react";
 import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
   // Mock user data - replace with your actual user data
@@ -35,6 +36,8 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
       .toUpperCase()
       .slice(0, 2);
   };
+
+  const { logout } = useAuth();
 
   return (
     <SidebarProvider>
@@ -92,7 +95,10 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                       <span>Profile</span>
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="flex items-center gap-2 text-red-600">
+                  <DropdownMenuItem
+                    onClick={logout}
+                    className="flex items-center gap-2 text-red-600"
+                  >
                     <LogOut className="h-4 w-4" />
                     <span>Logout</span>
                   </DropdownMenuItem>

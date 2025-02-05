@@ -8,6 +8,7 @@ declare global {
         email: string;
         password: string;
         _v: number;
+        name: string;
       };
     }
   }

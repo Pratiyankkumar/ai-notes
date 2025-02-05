@@ -5,9 +5,15 @@ export interface IUser extends Document {
   email: string;
   password: string;
   comparePassword(candidatePassword: string): Promise<boolean>;
+  name: string;
+  tokens: string[];
 }
 
-const userSchema = new Schema({
+const userSchema = new Schema<IUser>({
+  name: {
+    type: String,
+    required: true,
+  },
   email: {
     type: String,
     required: true,
@@ -18,6 +24,10 @@ const userSchema = new Schema({
     type: String,
     required: true,
     minlength: 6,
+  },
+  tokens: {
+    type: [String], // Array of JWT tokens
+    default: [],
   },
 });
 

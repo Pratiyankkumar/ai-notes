@@ -5,10 +5,26 @@ import { Document, Types } from "mongoose";
 
 const JWT_SECRET = "my-secret";
 
-export interface IUser extends Document {
+// Extend Express Request type to include user
+declare module "express" {
+  interface Request {
+    user?: AuthenticatedUser;
+  }
+}
+
+// Define the shape of the authenticated user
+interface AuthenticatedUser {
   _id: Types.ObjectId;
   email: string;
+  name: string;
+}
+
+export interface IUser extends Document {
+  id: Types.ObjectId;
+  email: string;
   password: string;
+  name: string;
+  tokens: string[];
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -20,53 +36,47 @@ export const authMiddleware = async (
   try {
     const authHeader = req.headers.authorization;
 
-    if (!authHeader) {
-      return res.status(401).json({
-        message: "Authorization header missing",
-      });
-    }
-
-    if (!authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({
-        message: "Authorization header must start with Bearer",
-      });
+    if (!authHeader?.startsWith("Bearer ")) {
+      return res
+        .status(401)
+        .json({ message: "Authorization header missing or invalid" });
     }
 
     const token = authHeader.split("Bearer ")[1];
 
     if (!token) {
-      return res.status(401).json({
-        message: "No token provided",
-      });
+      return res.status(401).json({ message: "No token provided" });
     }
 
+    // Verify token
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
-    const userDoc = await User.findById(decoded.userId);
 
-    if (!userDoc) {
-      return res.status(401).json({
-        message: "User not found",
-      });
+    // Convert userId to ObjectId
+    const userId = new Types.ObjectId(decoded.userId);
+
+    // Find user and validate token from DB
+    const userDoc = (await User.findById(userId)) as IUser | null;
+
+    if (!userDoc || !userDoc.tokens.includes(token)) {
+      return res
+        .status(401)
+        .json({ message: "User not found or token invalid" });
     }
 
-    // Ensure we're working with a properly typed document
-    const user = {
-      _id: userDoc._id as Types.ObjectId, // Explicitly type as ObjectId
+    // Attach user to request object (excluding password for security)
+    req.user = {
+      _id: userDoc._id as Types.ObjectId,
       email: userDoc.email,
-      password: userDoc.password,
-      _v: userDoc.__v,
+      name: userDoc.name,
     };
 
-    req.user = user;
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
-      return res.status(401).json({
-        message: "Invalid or expired token",
-      });
+      return res.status(401).json({ message: "Invalid or expired token" });
     }
-    res.status(500).json({
-      message: "Internal server error during authentication",
-    });
+    res
+      .status(500)
+      .json({ message: "Internal server error during authentication" });
   }
 };

@@ -1,10 +1,14 @@
 import express from "express";
 import authRoutes from "./routes/authRoutes";
+import noteRoutes from "./routes/Note";
 import connectDB from "./db/mongoose";
-import { authMiddleware } from "./middleware/authMiddleware";
+import userRoutes from "./routes/User";
+import cors from "cors";
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+app.use(cors());
 
 connectDB();
 
@@ -13,24 +17,8 @@ app.use(express.json());
 
 // Register auth routes
 app.use("/api/auth", authRoutes);
-
-// Home route
-app.get("/", (req, res) => {
-  res.json({
-    message: "Welcome to http-backend",
-    endpoints: {
-      signup: "/api/auth/signup",
-      login: "/api/auth/login",
-    },
-  });
-});
-
-app.get("/protected", authMiddleware, async (req, res) => {
-  res.send({
-    user: req.user,
-    message: "This route is protected by middleware",
-  });
-});
+app.use("/user", userRoutes);
+app.use("/notes", noteRoutes);
 
 app.listen(port, () => {
   console.log(`✨ Server is running on http://localhost:${port}`);

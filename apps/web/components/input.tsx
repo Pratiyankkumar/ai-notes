@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { Button } from "@workspace/ui/components/button";
@@ -15,8 +13,10 @@ import {
 import { Pen, ImageIcon, X, Mic, MicOff } from "lucide-react";
 import { cn } from "@workspace/ui/lib/utils";
 import { Toast } from "@workspace/ui/components/toast";
+import { useMutation, useQueryClient } from "react-query";
+import { uploadNote } from "@/api/mutations/uploadNote";
 
-// Define types for Web Speech API
+// Speech Recognition types remain the same...
 interface SpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList;
   resultIndex: number;
@@ -56,8 +56,13 @@ declare global {
   }
 }
 
+interface ImageFile {
+  url: string;
+  file: File;
+}
+
 export default function VoiceNoteInput() {
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImages, setSelectedImages] = useState<ImageFile[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
@@ -74,16 +79,52 @@ export default function VoiceNoteInput() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const audioRecorderRef = useRef<MediaRecorder | null>(null);
 
-  // Auto-scroll effect for textarea
+  // Previous useEffects remain the same...
   useEffect(() => {
     if (noteTextareaRef.current) {
       noteTextareaRef.current.scrollTop = noteTextareaRef.current.scrollHeight;
     }
-  }, [noteTextareaRef]); //Fixed unnecessary dependency
+  }, [note]);
 
   // Speech Recognition and Audio Recording Setup
+
+  const setupAudioRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+      });
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: "audio/webm;codecs=opus",
+      });
+
+      // Set up data collection at regular intervals
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          setAudioChunks((chunks) => [...chunks, event.data]);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        setAudioChunks((prevChunks) => {
+          if (prevChunks.length > 0) {
+            const audioBlob = new Blob(prevChunks, {
+              type: "audio/webm;codecs=opus",
+            });
+            const url = URL.createObjectURL(audioBlob);
+            setAudioUrl(url);
+          }
+          return prevChunks;
+        });
+      };
+
+      audioRecorderRef.current = mediaRecorder;
+    } catch (error) {
+      console.error("Audio recording error:", error);
+      setError("Failed to access microphone. Please check your permissions.");
+    }
+  };
+
   useEffect(() => {
-    // Speech Recognition Setup
     if (typeof window !== "undefined") {
       const SpeechRecognition =
         window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -114,39 +155,14 @@ export default function VoiceNoteInput() {
       }
     }
 
-    // Audio Recording Setup
-    const setupAudioRecording = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-        });
-        const mediaRecorder = new MediaRecorder(stream);
-
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0) {
-            setAudioChunks((prev) => [...prev, event.data]);
-          }
-        };
-
-        mediaRecorder.onstop = () => {
-          const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-          const url = URL.createObjectURL(audioBlob);
-          setAudioUrl(url);
-        };
-
-        audioRecorderRef.current = mediaRecorder;
-      } catch (error) {
-        console.error("Audio recording error:", error);
-        setError("Failed to access microphone. Please check your permissions.");
-      }
-    };
-
     setupAudioRecording();
   }, []);
 
-  // Recording and Timer Effect
   useEffect(() => {
     if (isRecording) {
+      setAudioChunks([]); // Clear previous chunks
+      setAudioUrl(null); // Clear previous URL
+
       timerRef.current = setInterval(() => {
         setRecordingTime((prev) => {
           if (prev >= 60) {
@@ -157,16 +173,23 @@ export default function VoiceNoteInput() {
         });
       }, 1000);
 
-      audioRecorderRef.current?.start();
-      recognitionRef.current?.start();
+      if (audioRecorderRef.current) {
+        // Start recording and collect data every 1 second
+        audioRecorderRef.current.start(1000);
+        recognitionRef.current?.start();
+      }
     } else {
       if (timerRef.current) {
         clearInterval(timerRef.current);
         setRecordingTime(0);
       }
 
-      audioRecorderRef.current?.stop();
-      recognitionRef.current?.stop();
+      if (audioRecorderRef.current?.state === "recording") {
+        audioRecorderRef.current.stop();
+      }
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
     }
 
     return () => {
@@ -176,57 +199,59 @@ export default function VoiceNoteInput() {
     };
   }, [isRecording]);
 
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation(uploadNote, {
+    onSuccess: (data) => {
+      console.log(data);
+      queryClient.invalidateQueries("notes");
+    },
+
+    onError: (error) => {
+      console.log(error);
+    },
+  });
+
   const handleSubmit = () => {
     if (!title.trim()) {
       setTitleError(true);
       return;
     }
 
-    const noteData = {
-      title: title.trim(),
-      content: note,
-      image: selectedImage,
-      audioBlob:
-        audioChunks.length > 0
-          ? new Blob(audioChunks, { type: "audio/webm" })
-          : null,
-      timestamp: new Date().toISOString(),
-    };
+    const formData = new FormData();
+    formData.append("title", title.trim());
+    formData.append("content", note);
+    formData.append("timestamp", new Date().toISOString());
 
-    // TODO: Implement database save logic
-    console.log("Saving note:", noteData);
+    // Only append audio if we have chunks and recording was stopped manually
+    const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+    console.log(audioBlob);
+    formData.append("audioBlob", audioBlob, "audio.webm");
+
+    selectedImages.forEach((img) => {
+      formData.append("images", img.file);
+    });
+    mutation.mutate(formData);
 
     // Reset states
     setTitle("");
     setNote("");
-    setSelectedImage(null);
-    setAudioChunks([]);
+    setSelectedImages([]);
+    setAudioChunks([]); // Clear audio chunks
     setAudioUrl(null);
     setIsDialogOpen(false);
     setIsRecording(false);
   };
 
   const handleClose = () => {
-    const noteData = {
-      title: title.trim(),
-      content: note,
-      image: selectedImage,
-      audioBlob:
-        audioChunks.length > 0
-          ? new Blob(audioChunks, { type: "audio/webm" })
-          : null,
-      timestamp: new Date().toISOString(),
-    };
-
     setTitle("");
     setNote("");
-    setSelectedImage(null);
-    setAudioChunks([]);
+    setSelectedImages([]);
+    setAudioChunks([]); // Clear audio chunks
     setAudioUrl(null);
     setIsDialogOpen(false);
     setIsRecording(false);
-
-    console.log(noteData);
+    setRecordingTime(0); // Reset recording time
   };
 
   const toggleRecording = () => {
@@ -239,18 +264,35 @@ export default function VoiceNoteInput() {
   };
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type.startsWith("image/")) {
-      const imageUrl = URL.createObjectURL(file);
-      setSelectedImage(imageUrl);
+    const files = event.target.files;
+    if (files) {
+      const remainingSlots = 5 - selectedImages.length;
+      const filesToAdd = Array.from(files).slice(0, remainingSlots);
+
+      if (filesToAdd.length > 0) {
+        const newImages = filesToAdd.map((file) => ({
+          url: URL.createObjectURL(file),
+          file: file,
+        }));
+
+        setSelectedImages((prev) => [...prev, ...newImages]);
+      }
+
+      if (files.length > remainingSlots) {
+        setError("Maximum 5 images allowed");
+      }
     }
   };
 
-  const removeImage = () => {
-    setSelectedImage(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+  const removeImage = (index: number) => {
+    setSelectedImages((prev) => {
+      const newImages = [...prev];
+      if (newImages[index]) {
+        URL.revokeObjectURL(newImages[index].url);
+      }
+      newImages.splice(index, 1);
+      return newImages;
+    });
   };
 
   return (
@@ -269,8 +311,14 @@ export default function VoiceNoteInput() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 rounded-full"
-              onClick={() => fileInputRef.current?.click()}
+              className={cn(
+                "h-8 w-8 rounded-full",
+                selectedImages.length >= 5 && "opacity-50 cursor-not-allowed"
+              )}
+              onClick={() =>
+                selectedImages.length < 5 && fileInputRef.current?.click()
+              }
+              disabled={selectedImages.length >= 5}
             >
               <ImageIcon className="h-4 w-4" />
               <input
@@ -279,6 +327,8 @@ export default function VoiceNoteInput() {
                 className="hidden"
                 accept="image/*"
                 onChange={handleImageChange}
+                multiple
+                disabled={selectedImages.length >= 5}
               />
             </Button>
           </div>
@@ -308,24 +358,28 @@ export default function VoiceNoteInput() {
           </Button>
         </div>
 
-        {selectedImage && (
-          <div className="relative inline-block overflow-hidden transition-all duration-300">
-            <div className="relative h-20 w-20">
-              <Image
-                src={selectedImage || "/placeholder.svg"}
-                alt="Preview"
-                fill
-                className="object-cover rounded-lg border"
-              />
-            </div>
-            <Button
-              variant="secondary"
-              size="icon"
-              className="absolute -top-2 left-16 h-6 w-6 rounded-full"
-              onClick={removeImage}
-            >
-              <X className="h-3 w-3 " />
-            </Button>
+        {selectedImages.length > 0 && (
+          <div className="flex gap-2 flex-wrap">
+            {selectedImages.map((image, index) => (
+              <div key={index} className="relative inline-block">
+                <div className="relative h-20 w-20">
+                  <Image
+                    src={image.url}
+                    alt={`Preview ${index + 1}`}
+                    fill
+                    className="object-cover rounded-lg border"
+                  />
+                </div>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="absolute -top-2 left-16 h-6 w-6 rounded-full"
+                  onClick={() => removeImage(index)}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -377,22 +431,17 @@ export default function VoiceNoteInput() {
                 rows={4}
               />
             </div>
-
-            {/* Waveform and Audio Playback */}
-            {/* {isRecording && (
-              <AudioWaveform
-                audioChunks={audioChunks}
-                isRecording={isRecording}
-              />
-            )} */}
           </div>
           <DialogFooter>
-            <Button type="submit" onClick={handleSubmit}>
-              Save note
+            <Button
+              disabled={mutation.isLoading}
+              type="submit"
+              onClick={handleSubmit}
+            >
+              {mutation.isLoading ? "Saving" : "Save"}
             </Button>
           </DialogFooter>
-          {/* Error Toast */}
-          {error && <Toast variant="destructive" title="Error" />}
+          {error && <Toast variant="destructive" title={error} />}
         </DialogContent>
       </Dialog>
     </div>

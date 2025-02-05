@@ -10,7 +10,6 @@ import {
 } from "@workspace/ui/components/dialog";
 import {
   Copy,
-  Download,
   Edit,
   Eye,
   Expand,
@@ -27,6 +26,7 @@ import {
   Image,
 } from "lucide-react";
 import TextEditor from "./editor";
+import { timeAgo } from "@/utils/formatDateAndTime";
 
 interface NoteCardProps {
   title: string;
@@ -123,18 +123,6 @@ export function NoteCard({
     }
   };
 
-  const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (audioRef.current && progressBarRef.current) {
-      const rect = progressBarRef.current.getBoundingClientRect();
-      const clickPosition = e.clientX - rect.left;
-      const percentageClicked = (clickPosition / rect.width) * 100;
-      const newTime = (audioRef.current.duration * percentageClicked) / 100;
-
-      audioRef.current.currentTime = newTime;
-      setProgress(percentageClicked);
-    }
-  };
-
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && noteImages.length < 5) {
@@ -214,7 +202,7 @@ export function NoteCard({
                 <h3 className="font-medium">{title}</h3>
                 {audioUrl && (
                   <span className="text-xs px-[6px] py-[3px] text-black bg-gray-200 rounded-full text-muted-foreground flex justify-center items-center gap-1">
-                    <Play className="h-3 w-3 text-black" /> {duration}
+                    <Play className="h-3 w-3 text-black" /> {"Contains Voice"}
                   </span>
                 )}
               </div>
@@ -244,7 +232,7 @@ export function NoteCard({
           </div>
         </CardContent>
         <CardFooter className="px-4 py-4 flex flex-row justify-between w-full border-t text-xs text-muted-foreground">
-          <p>{date}</p>
+          <p>{timeAgo(date)}</p>
           <div className="flex flex-row items-center gap-2">
             <Copy
               className="h-4 w-4 cursor-pointer"
@@ -337,28 +325,13 @@ export function NoteCard({
                     <Play className="h-4 w-4" />
                   )}
                 </Button>
-                <div className="w-full">
-                  <div
-                    className="w-full bg-muted rounded-full h-1 cursor-pointer"
-                    onClick={handleProgressBarClick}
-                    ref={progressBarRef}
-                  >
-                    <div
-                      className="bg-primary h-1 rounded-full relative"
-                      style={{ width: `${progress}%` }}
-                    >
-                      <div className="h-3 w-3 rounded-full bg-primary absolute right-0 -top-1" />
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 text-sm">
-                  <span>{currentTime}</span>
-                  <span>/</span>
-                  <span>{duration}</span>
-                </div>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <Download className="h-4 w-4" />
-                </Button>
+                <p>
+                  {isPlaying
+                    ? "Audio is Playing"
+                    : "Click a play button to listen the audio"}
+                </p>
+
+                {/* No progress bar, current time, or duration shown */}
               </div>
             )}
 
