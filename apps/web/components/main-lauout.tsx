@@ -1,3 +1,5 @@
+"use client";
+
 import { Home, Star, Menu, LogOut, User } from "lucide-react";
 import {
   Sidebar,
@@ -19,13 +21,27 @@ import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar";
 import type React from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "react-query";
+import { getUser } from "@/api/queries/user";
+import { useEffect, useState } from "react";
+
+interface User {
+  name: string;
+  email: string;
+  password: string;
+}
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
   // Mock user data - replace with your actual user data
-  const user = {
-    name: "John Doe",
-    email: "john@example.com",
-  };
+  const { data } = useQuery("user", getUser);
+
+  const [user, setUser] = useState<User>();
+
+  useEffect(() => {
+    if (data) {
+      setUser(data.data.user);
+    }
+  }, [data]);
 
   // Get initials from name
   const getInitials = (name: string) => {
@@ -78,12 +94,14 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-3 p-4 w-full hover:bg-accent transition-colors">
                     <Avatar>
-                      <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+                      <AvatarFallback>
+                        {user && getInitials(user.name)}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 text-left">
-                      <p className="text-sm font-medium">{user.name}</p>
+                      <p className="text-sm font-medium">{user && user.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {user.email}
+                        {user && user.email}
                       </p>
                     </div>
                   </button>
