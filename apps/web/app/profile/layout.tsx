@@ -4,7 +4,6 @@ import { Inter } from "next/font/google";
 import "@workspace/ui/globals.css";
 import { MainLayout } from "@/components/main-lauout";
 import type React from "react";
-import FloatingInput from "@/components/folating-input";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -16,7 +15,6 @@ export default function RootLayout({
   return (
     <div className={inter.className}>
       <MainLayout>{children}</MainLayout>
-      <FloatingInput />
     </div>
   );
 }

@@ -2,6 +2,8 @@ import { Router, Request, Response } from "express";
 import { User } from "../models/User";
 import { authMiddleware } from "../middleware/authMiddleware";
 import { z } from "zod";
+import Note from "../models/Notes";
+import { supabase } from "../config/supabaseClient";
 
 const router = Router();
 
@@ -95,6 +97,7 @@ router.put("/me", authMiddleware, async (req: Request, res: Response) => {
 // Delete User
 router.delete("/me", authMiddleware, async (req: Request, res: Response) => {
   try {
+    // Check if the user is authenticated
     if (!req.user) {
       return handleErrorResponse(
         res,
@@ -103,16 +106,52 @@ router.delete("/me", authMiddleware, async (req: Request, res: Response) => {
       );
     }
 
-    const deletedUser = await User.findByIdAndDelete(req.user._id);
+    const userId = req.user._id;
+
+    // Find all notes belonging to the user
+    const notes = await Note.find({ user: userId });
+
+    // Collect file URLs (images & audio) for deletion from Supabase
+    const filePaths: any[] = [];
+    notes.forEach((note: { images: any; audio: any }) => {
+      if (note.images) filePaths.push(...note.images); // Add images
+      if (note.audio) filePaths.push(note.audio); // Add audio if any
+    });
+
+    // Delete files from Supabase Storage if they exist
+    if (filePaths.length > 0) {
+      const { error } = await supabase.storage
+        .from("your-bucket-name") // Replace with your actual bucket name
+        .remove(filePaths);
+
+      if (error) {
+        console.error("Error deleting files from Supabase:", error);
+        return handleErrorResponse(
+          res,
+          500,
+          "Error deleting files from Supabase"
+        );
+      }
+    }
+
+    // Delete notes from MongoDB
+    await Note.deleteMany({ user: userId });
+
+    // Delete the user from MongoDB
+    const deletedUser = await User.findByIdAndDelete(userId);
 
     if (!deletedUser) {
       return handleErrorResponse(res, 404, "User not found");
     }
 
-    res.json({ success: true, message: "User deleted successfully" });
+    // Respond with success message
+    res.json({
+      success: true,
+      message: "User and their notes deleted successfully",
+    });
   } catch (error) {
-    console.error("Error deleting user:", error);
-    return handleErrorResponse(res, 500, "Error deleting user");
+    console.error("Error deleting user and notes:", error);
+    return handleErrorResponse(res, 500, "Error deleting user and notes");
   }
 });
 

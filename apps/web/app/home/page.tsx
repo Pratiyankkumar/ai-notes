@@ -17,7 +17,7 @@ export interface Note {
   timestamps?: string;
   images?: string[];
   audio?: string;
-  favorite?: boolean;
+  fav?: boolean;
 }
 
 export default function Home() {
@@ -111,7 +111,8 @@ export default function Home() {
             initialImages={note.images || []}
             audioUrl={note.audio || ""}
             type={note.audio ? "audio" : "text"}
-            favorite={note.favorite || false}
+            favorite={note.fav || false}
+            noteId={note._id}
           />
         ))}
       </div>

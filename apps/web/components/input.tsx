@@ -15,6 +15,7 @@ import { cn } from "@workspace/ui/lib/utils";
 import { Toast } from "@workspace/ui/components/toast";
 import { useMutation, useQueryClient } from "react-query";
 import { uploadNote } from "@/api/mutations/uploadNote";
+import Alert from "./Alert";
 
 // Speech Recognition types remain the same...
 interface SpeechRecognitionEvent extends Event {
@@ -72,6 +73,7 @@ export default function VoiceNoteInput() {
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [hasRecordedAudio, setHasRecordedAudio] = useState(false); // New state to track if audio was recorded
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -223,35 +225,39 @@ export default function VoiceNoteInput() {
     formData.append("content", note);
     formData.append("timestamp", new Date().toISOString());
 
-    // Only append audio if we have chunks and recording was stopped manually
-    const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-    console.log(audioBlob);
-    formData.append("audioBlob", audioBlob, "audio.webm");
+    // Only append audio if we have chunks AND we actually recorded audio in this session
+    if (hasRecordedAudio && audioChunks.length > 0) {
+      const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+      formData.append("audioBlob", audioBlob, "audio.webm");
+    }
 
     selectedImages.forEach((img) => {
       formData.append("images", img.file);
     });
     mutation.mutate(formData);
 
-    // Reset states
+    // Reset all states
     setTitle("");
     setNote("");
     setSelectedImages([]);
-    setAudioChunks([]); // Clear audio chunks
+    setAudioChunks([]);
     setAudioUrl(null);
     setIsDialogOpen(false);
     setIsRecording(false);
+    setHasRecordedAudio(false); // Reset the audio recording flag
   };
 
+  // Modify the handleClose function
   const handleClose = () => {
     setTitle("");
     setNote("");
     setSelectedImages([]);
-    setAudioChunks([]); // Clear audio chunks
+    setAudioChunks([]);
     setAudioUrl(null);
     setIsDialogOpen(false);
     setIsRecording(false);
-    setRecordingTime(0); // Reset recording time
+    setRecordingTime(0);
+    setHasRecordedAudio(false); // Reset the audio recording flag
   };
 
   const toggleRecording = () => {
@@ -260,6 +266,9 @@ export default function VoiceNoteInput() {
       return;
     }
     setIsDialogOpen(true);
+    if (!isRecording) {
+      setHasRecordedAudio(true); // Set to true when starting a new recording
+    }
     setIsRecording(!isRecording);
   };
 
@@ -384,15 +393,7 @@ export default function VoiceNoteInput() {
         )}
       </div>
 
-      <Dialog
-        open={isDialogOpen}
-        onOpenChange={(open) => {
-          setIsDialogOpen(open);
-          if (!open) {
-            handleClose();
-          }
-        }}
-      >
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>

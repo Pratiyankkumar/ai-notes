@@ -14,7 +14,6 @@ import {
   Eye,
   Expand,
   Maximize2,
-  MoreHorizontal,
   Play,
   Pause,
   Star,
@@ -24,9 +23,15 @@ import {
   ChevronLeft,
   ChevronRight,
   Image,
+  Loader,
 } from "lucide-react";
 import TextEditor from "./editor";
 import { timeAgo } from "@/utils/formatDateAndTime";
+import { useMutation, useQueryClient } from "react-query";
+import { favNote, updateNote } from "@/api/mutations/updateNote";
+import { base64ToFile } from "@/utils/base64ToFile";
+import { deleteNote } from "@/api/mutations/deleteNote";
+import Alert from "./Alert";
 
 interface NoteCardProps {
   title: string;
@@ -37,6 +42,7 @@ interface NoteCardProps {
   initialImages?: string[];
   audioUrl?: string;
   favorite: boolean;
+  noteId?: string;
 }
 
 export function NoteCard({
@@ -47,11 +53,11 @@ export function NoteCard({
   initialImages = [],
   audioUrl,
   favorite,
+  noteId,
 }: NoteCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState("00:00");
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(favorite);
   const [isEditing, setIsEditing] = useState(true);
   const [editedContent, setEditedContent] = useState(content);
   const [editedTitle, setEditedTitle] = useState<string>(title);
@@ -66,10 +72,12 @@ export function NoteCard({
     null
   );
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
+  const [imagesToRemove, setImagesToRemove] = useState<string[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const progressBarRef = useRef<HTMLDivElement>(null);
+
+  console.log(imagesToRemove);
 
   useEffect(() => {
     if (audioUrl && !audioRef.current) {
@@ -142,22 +150,10 @@ export function NoteCard({
     setIsFullScreen(!isFullScreen);
   };
 
-  const toggleFavorite = () => {
-    setIsFavorite(!isFavorite);
-  };
-
   // Function to safely render HTML content
   const createMarkup = (htmlContent: string) => {
     return { __html: htmlContent };
   };
-
-  function handleSave() {
-    console.log({
-      editedTitle,
-      editedContent,
-      noteImages,
-    });
-  }
 
   const openImageViewer = (index: number) => {
     if (!isEditing) {
@@ -189,8 +185,121 @@ export function NoteCard({
     setSelectedImageIndex(newIndex);
   };
 
+  const mutation = useMutation(updateNote, {
+    onSuccess: (data) => {
+      console.log(data);
+    },
+    onError: (error) => {
+      console.log(error);
+    },
+  });
+
+  const favMutation = useMutation(favNote, {
+    onSuccess: (data) => {
+      console.log(data);
+    },
+
+    onError: (error) => {
+      console.log(error);
+    },
+  });
+
+  const handleSubmit = () => {
+    // Filter out removed images
+    const updatedImages = noteImages.filter(
+      (image) => !imagesToRemove.includes(image)
+    );
+
+    const noteData = {
+      title: editedTitle,
+      content: editedContent,
+      images: updatedImages,
+      imagesToRemove,
+    };
+
+    console.log("Submitting note:", noteData);
+
+    const formData = new FormData();
+
+    // Append the data to the FormData object
+    formData.append("title", editedTitle);
+    formData.append("content", editedContent);
+    formData.append("imagesToRemove", JSON.stringify(imagesToRemove));
+
+    // Check and convert base64 to File objects, then append them to formData
+    updatedImages.forEach((image: string | File, index: number) => {
+      if (typeof image === "string" && image.startsWith("data:image")) {
+        const parts = image.split(";");
+        if (parts[0]) {
+          const mimeType = parts[0].split(":")[1];
+          const filename = `image${index + 1}.jpg`;
+          const file = base64ToFile(image, filename, mimeType);
+          formData.append("images", file);
+        }
+      } else if (image instanceof File) {
+        // If it's already a file object, just append it directly
+        formData.append("images", image);
+      }
+    });
+
+    // Log FormData to check its contents
+    for (const pair of formData.entries()) {
+      console.log(pair[0], pair[1]);
+    }
+
+    // Pass the FormData to your mutation
+    if (noteId) {
+      mutation.mutate({ updatedNote: formData, noteId: noteId });
+    }
+  };
+
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation(deleteNote, {
+    onSuccess: (data) => {
+      console.log("deleted Successfully", data);
+      queryClient.invalidateQueries("notes");
+    },
+
+    onError: (error) => {
+      console.log(error);
+    },
+  });
+
+  function handleDelete() {
+    if (noteId) {
+      deleteMutation.mutate({ noteId });
+    }
+  }
+
+  const [isCopied, setIsCopied] = useState<boolean | null>();
+
+  function handleCopy() {
+    if (!editedContent) return; // Ensure there's content to copy
+
+    navigator.clipboard
+      .writeText(editedContent)
+      .then(() => {
+        console.log("Copied to clipboard!");
+        setIsCopied(true);
+      })
+      .catch((err) => {
+        console.error("Failed to copy:", err);
+      });
+
+    setIsCopied(false);
+  }
+
+  const [isfavNote, setIsFaveNote] = useState<boolean>(favorite || false);
+
   return (
     <>
+      {deleteMutation.isSuccess && (
+        <Alert isError={false} text="Note Deleted Successfully" />
+      )}
+      {isCopied && <Alert isError={false} text="Copied to Clipboard" />}
+      {mutation.isSuccess && <Alert isError={false} text="Note updated" />}
+      {mutation.isError && <Alert isError={true} text="An error was occured" />}
       <Card
         className="group w-[350px] h-[300px] flex flex-col cursor-pointer hover:shadow-md transition-shadow"
         onClick={() => setIsOpen(true)}
@@ -199,17 +308,24 @@ export function NoteCard({
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <h3 className="font-medium">{title}</h3>
+                <h3 className="font-medium">
+                  {editedTitle.length > 15
+                    ? `${editedTitle.substring(0, 15)}...`
+                    : editedTitle}
+                </h3>
                 {audioUrl && (
-                  <span className="text-xs px-[6px] py-[3px] text-black bg-gray-200 rounded-full text-muted-foreground flex justify-center items-center gap-1">
+                  <span className="text-xs px-[6px] py-[3px] text-black bg-gray-200 rounded-full flex justify-center items-center gap-1">
                     <Play className="h-3 w-3 text-black" /> {"Contains Voice"}
                   </span>
                 )}
               </div>
+
+              {/* Truncate long content */}
               <div
-                className="text-sm text-muted-foreground"
-                dangerouslySetInnerHTML={createMarkup(content)}
+                className="text-sm text-muted-foreground max-h-20 overflow-hidden text-ellipsis break-words line-clamp-3"
+                dangerouslySetInnerHTML={createMarkup(editedContent)}
               />
+
               {noteImages.length > 0 && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Image className="h-3 w-3" />
@@ -220,15 +336,6 @@ export function NoteCard({
                 </div>
               )}
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="opacity-0 group-hover:opacity-100"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <MoreHorizontal className="h-4 w-4" />
-              <span className="sr-only">More options</span>
-            </Button>
           </div>
         </CardContent>
         <CardFooter className="px-4 py-4 flex flex-row justify-between w-full border-t text-xs text-muted-foreground">
@@ -236,11 +343,21 @@ export function NoteCard({
           <div className="flex flex-row items-center gap-2">
             <Copy
               className="h-4 w-4 cursor-pointer"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCopy();
+              }}
             />
             <Trash
-              className="h-4 w-4 cursor-pointer"
+              className={`h-4 w-4 cursor-pointer hover:text-balck ${deleteMutation.isLoading ? "hidden" : ""}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete();
+              }}
+            />
+            <Loader
               onClick={(e) => e.stopPropagation()}
+              className={`w-4 h-4 animate-spin ${deleteMutation.isLoading ? "" : "hidden"}`}
             />
           </div>
         </CardFooter>
@@ -257,8 +374,13 @@ export function NoteCard({
             <div className="flex items-center fixed top-2 right-[44px] gap-2">
               <Button
                 size="icon"
-                variant={favorite ? "default" : "ghost"}
-                onClick={toggleFavorite}
+                variant={isfavNote ? "default" : "ghost"}
+                onClick={() => {
+                  setIsFaveNote((prev) => !prev);
+                  if (noteId) {
+                    favMutation.mutate({ noteId });
+                  }
+                }}
                 className="text-yellow-500"
               >
                 <Star className="h-3 w-3" />
@@ -394,7 +516,10 @@ export function NoteCard({
                           variant="destructive"
                           size="icon"
                           className="absolute top-0 right-0 z-10 bg-transparent"
-                          onClick={() => removeImage(index)}
+                          onClick={() => {
+                            removeImage(index);
+                            setImagesToRemove((prev) => [...prev, image]);
+                          }}
                         >
                           <X className="h-4 w-4 text-white" />
                         </Button>
@@ -425,12 +550,21 @@ export function NoteCard({
                 </>
               )}
               <Button
-                onClick={handleSave}
+                onClick={handleSubmit}
                 variant={"default"}
                 size={"default"}
-                className="mt-4"
+                className={`mt-4 ${mutation.isLoading ? "hidden" : ""}`}
               >
                 Save
+              </Button>
+              <Button
+                className={`mt-4 ${mutation.isLoading ? "" : "hidden"}`}
+                variant={"default"}
+                size={"default"}
+              >
+                <Loader
+                  className={`w-6 h-6 animate-spin ${mutation.isLoading ? "" : ""}`}
+                />
               </Button>
             </div>
           </div>

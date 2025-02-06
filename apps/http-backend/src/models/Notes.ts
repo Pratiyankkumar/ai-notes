@@ -1,4 +1,4 @@
-import { string } from "zod";
+import { boolean, string } from "zod";
 
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
@@ -32,6 +32,10 @@ const noteSchema = new Schema(
     timestamp: {
       type: Date,
       default: Date.now,
+    },
+    fav: {
+      type: Boolean,
+      default: false,
     },
   },
   {

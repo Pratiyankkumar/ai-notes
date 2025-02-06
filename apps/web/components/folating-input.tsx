@@ -1,47 +1,37 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import InputWithActions from "@/components/input";
 
 const FloatingInput = () => {
   const [isVisible, setIsVisible] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [mouseY, setMouseY] = useState(0);
+  const inputRef = useRef<HTMLDivElement>(null);
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      setMouseY(e.clientY);
       const threshold = window.innerHeight - 100;
+
+      if (isHovered) {
+        setIsVisible(true);
+        return;
+      }
+
       setIsVisible(e.clientY >= threshold);
     };
 
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
+  }, [isHovered]);
 
   return (
     <div
-      className={`
-        fixed bottom-0 left-0 right-0 z-50 
-        transition-all duration-500 ease-in-out 
-        ${
-          isVisible ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
-        }
-        shadow-2xl rounded-t-xl
-      `}
-      style={{
-        transform: `translateY(${isVisible ? "0" : "100%"})`,
-        transitionDelay: isVisible ? "0ms" : "300ms",
-        pointerEvents: isVisible ? "auto" : "none",
-      }}
+      ref={inputRef}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className={`transition-opacity duration-300 ${
+        isVisible ? "opacity-100" : "opacity-0"
+      }`}
     >
-      <div
-        className={`
-          p-4 bg-transparent
-          transition-opacity duration-500 
-          ${isVisible ? "opacity-100" : "opacity-0"}
-        `}
-      >
-        <InputWithActions />
-      </div>
+      <InputWithActions />
     </div>
   );
 };
