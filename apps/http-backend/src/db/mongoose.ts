@@ -2,7 +2,9 @@ import mongoose from "mongoose";
 
 function connectDB() {
   mongoose
-    .connect("mongodb://localhost:27017/ai-notes")
+    .connect(
+      "mongodb+srv://pratiyank49:NcQttk0T4neWqkeX@cluster0.2rijj.mongodb.net/ai-notes"
+    )
     .then(() => {
       console.log("✅ Connected to MongoDB successfully");
     })
