@@ -30,6 +30,7 @@ import {
 } from "@workspace/ui/components/alert-dialog";
 import { useQuery, useMutation, useQueryClient } from "react-query";
 import { getUser, updateUser, deleteUser } from "@/api/queries/user";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface User {
   name: string;
@@ -115,6 +116,12 @@ export default function Page() {
       setIsDeleting(false);
     }
   };
+
+  const { isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    return <p>Please authentcate first</p>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">

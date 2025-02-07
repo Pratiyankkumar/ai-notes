@@ -2,8 +2,9 @@ import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { User } from "../models/User";
 import { z } from "zod";
+import "dotenv/config";
 
-const JWT_SECRET = "my-secret";
+const JWT_SECRET = process.env.MY_JWT_SECRET as string;
 
 const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters long"),

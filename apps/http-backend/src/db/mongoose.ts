@@ -1,10 +1,11 @@
+import "dotenv/config";
 import mongoose from "mongoose";
+
+const DB_STRING = process.env.DB_STRING as string;
 
 function connectDB() {
   mongoose
-    .connect(
-      "mongodb+srv://pratiyank49:NcQttk0T4neWqkeX@cluster0.2rijj.mongodb.net/ai-notes"
-    )
+    .connect(DB_STRING)
     .then(() => {
       console.log("✅ Connected to MongoDB successfully");
     })

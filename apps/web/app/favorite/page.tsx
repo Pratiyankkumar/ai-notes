@@ -7,6 +7,7 @@ import { Search, SlidersHorizontal } from "lucide-react";
 import { NoteCard } from "@/components/note-card";
 import { getNote } from "@/api/queries/getNotes";
 import { useQuery } from "react-query";
+import { useAuth } from "@/contexts/AuthContext";
 
 export interface Note {
   _id: string;
@@ -25,6 +26,12 @@ export default function Home() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   const { data, error, isLoading } = useQuery("notes", getNote);
+
+  const { isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    return <p>Please authentcate first</p>;
+  }
 
   // Early return for loading state
   if (isLoading) {

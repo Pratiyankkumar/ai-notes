@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import { User } from "../models/User";
 import { Document, Types } from "mongoose";
 
-const JWT_SECRET = "my-secret";
+const JWT_SECRET = process.env.MY_JWT_SECRET as string;
 
 // Extend Express Request type to include user
 declare module "express" {
