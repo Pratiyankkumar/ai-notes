@@ -8,7 +8,7 @@ import cors from "cors";
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors({ origin: "https://k3z9zp-4000.csb.app" }));
+app.use(cors({ origin: "*" }));
 
 connectDB();
 
