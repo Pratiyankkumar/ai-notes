@@ -1,116 +1,96 @@
-# Setting up axiosInstance.ts for CodeSandbox Backend
+# AI Notes App 📝
 
-This guide explains how to configure your frontend to communicate with a backend running on CodeSandbox (port 3000).
-Repo link : https://github.com/Pratiyankkumar/ai-notes
+An intelligent note-taking application featuring speech recognition, image storage, and sound recording capabilities. Take your note-taking experience to the next level with AI-powered features.
 
-## Overview
+## 🌟 Features
 
-When importing a TurboRepo project into CodeSandbox, you'll need to update the backend URL configuration to ensure proper communication between frontend and backend services.
+- **Speech Recognition**: Convert your spoken words into text automatically
+- **Image Storage**: Save and organize images alongside your notes
+- **Sound Recording**: Capture audio notes and recordings
 
-## 1. Locate Configuration File
+## 🚀 Live Demo
 
-Navigate to the following file in your project structure:
-```
-apps/web/api/axiosInstance.ts
-```
+Check out the live application at [AI Notes App](https://ai-notes-gules.vercel.app/)
 
-## 2. Current Configuration
+## 🛠️ Technologies Used
 
-Your existing configuration might look like this:
+- Next.js
+- TurboRepo
+- Speech Recognition API
+- Supabase
+- Shadcn
+- Express
+- React
+- Mongo DB
 
-```typescript
-import axios from "axios";
+## 💻 Getting Started
 
-const axiosInstance = axios.create({
-    baseURL: "http://localhost:3000", // Old backend URL
-    headers: {
-        "Content-Type": "application/json",
-    },
-});
+### Prerequisites
 
-export default axiosInstance;
-```
+- Node.js (16.x or higher)
+- pnpm package manager
 
-## 3. Update Backend URL
+### Installation
 
-Replace the configuration with the CodeSandbox backend URL:
-
-```typescript
-import axios from "axios";
-
-const axiosInstance = axios.create({
-    baseURL: "https://your-sandbox-id-3000.app.codesandbox.io", // Replace with actual CodeSandbox URL
-    headers: {
-        "Content-Type": "application/json",
-    },
-});
-
-export default axiosInstance;
+1. Clone the repository
+```bash
+git clone <your-repo-url>
+cd <your-repo-name>
 ```
 
-## 4. Environment Variables (Optional)
-
-For better configuration management, you can use environment variables:
-
-1. Create or edit `.env` file in your frontend directory:
-```ini
-REACT_APP_API_URL=https://your-sandbox-id-3000.app.codesandbox.io
+2. Install dependencies
+```bash
+pnpm install
 ```
 
-2. Update `axiosInstance.ts` to use the environment variable:
-```typescript
-import axios from "axios";
-
-const axiosInstance = axios.create({
-    baseURL: process.env.REACT_APP_API_URL || "http://localhost:3000",
-    headers: {
-        "Content-Type": "application/json",
-    },
-});
-
-export default axiosInstance;
+3. Start the development server
+```bash
+pnpm run dev
 ```
 
-## 5. Implementation Steps
+4. Open your browser and navigate to `http://localhost:3000`
 
-1. Update the configuration file with the new backend URL
-2. Restart your frontend application
-3. Verify API requests are properly routed
+## 📂 Project Structure
 
-## 6. Verifying the Setup
-
-To confirm your backend is running correctly:
-1. Check the hosted URL in CodeSandbox's Server Console
-2. Test an API endpoint: `https://your-sandbox-id-3000.app.codesandbox.io/api/your-endpoint`
-
-## Troubleshooting
-
-### CORS Issues
-
-If you encounter CORS errors, update your backend CORS policy:
-
-```typescript
-import cors from "cors";
-
-app.use(cors({ 
-    origin: "*" // Adjust based on your security requirements
-}));
+```
+root/
+├── apps/
+│   └── web/
+    └── http-backend/
+├── packages/
+├── turbo.json
+└── package.json
 ```
 
-### Common Issues
+## 🤝 Contributing
 
-1. **Changes not reflected:**
-   - Ensure frontend has been restarted
-   - Verify the exact backend URL from CodeSandbox
-   - Check browser console (F12 → Console) for API request errors
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-2. **Connection failures:**
-   - Confirm backend is running
-   - Verify URL format matches CodeSandbox's format
-   - Check for any network restrictions
+## 📝 License
 
-## Additional Notes
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-- Always replace `your-sandbox-id` with your actual CodeSandbox project identifier
-- Consider security implications when setting CORS policies
-- Keep environment variables secure and never commit them to version control
+## 🌐 Deployment
+
+The application is deployed on Vercel. For deployment, follow these steps:
+
+1. Fork this repository
+2. Create a new project on Vercel
+3. Connect your forked repository
+4. Deploy!
+
+## ⭐ Support
+
+Give a ⭐️ if this project helped you!
+
+## 📧 Contact
+
+If you have any questions, feel free to open an issue in the repository.
+
+---
+
+Made with ❤️ using TurboRepo and Next.js
