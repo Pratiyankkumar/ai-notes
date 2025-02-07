@@ -1,31 +1,116 @@
-# shadcn/ui monorepo template
+# Setting up axiosInstance.ts for CodeSandbox Backend
 
-This template is for creating a monorepo with shadcn/ui.
+This guide explains how to configure your frontend to communicate with a backend running on CodeSandbox (port 3000).
+Repo link : https://github.com/Pratiyankkumar/ai-notes
 
-## Usage
+## Overview
 
-```bash
-pnpm dlx shadcn@latest init
+When importing a TurboRepo project into CodeSandbox, you'll need to update the backend URL configuration to ensure proper communication between frontend and backend services.
+
+## 1. Locate Configuration File
+
+Navigate to the following file in your project structure:
+```
+apps/web/api/axiosInstance.ts
 ```
 
-## Adding components
+## 2. Current Configuration
 
-To add components to your app, run the following command at the root of your `web` app:
+Your existing configuration might look like this:
 
-```bash
-pnpm dlx shadcn@latest add button -c apps/web
+```typescript
+import axios from "axios";
+
+const axiosInstance = axios.create({
+    baseURL: "http://localhost:3000", // Old backend URL
+    headers: {
+        "Content-Type": "application/json",
+    },
+});
+
+export default axiosInstance;
 ```
 
-This will place the ui components in the `packages/ui/src/components` directory.
+## 3. Update Backend URL
 
-## Tailwind
+Replace the configuration with the CodeSandbox backend URL:
 
-Your `tailwind.config.ts` and `globals.css` are already set up to use the components from the `ui` package.
+```typescript
+import axios from "axios";
 
-## Using components
+const axiosInstance = axios.create({
+    baseURL: "https://your-sandbox-id-3000.app.codesandbox.io", // Replace with actual CodeSandbox URL
+    headers: {
+        "Content-Type": "application/json",
+    },
+});
 
-To use the components in your app, import them from the `ui` package.
-
-```tsx
-import { Button } from "@workspace/ui/components/ui/button"
+export default axiosInstance;
 ```
+
+## 4. Environment Variables (Optional)
+
+For better configuration management, you can use environment variables:
+
+1. Create or edit `.env` file in your frontend directory:
+```ini
+REACT_APP_API_URL=https://your-sandbox-id-3000.app.codesandbox.io
+```
+
+2. Update `axiosInstance.ts` to use the environment variable:
+```typescript
+import axios from "axios";
+
+const axiosInstance = axios.create({
+    baseURL: process.env.REACT_APP_API_URL || "http://localhost:3000",
+    headers: {
+        "Content-Type": "application/json",
+    },
+});
+
+export default axiosInstance;
+```
+
+## 5. Implementation Steps
+
+1. Update the configuration file with the new backend URL
+2. Restart your frontend application
+3. Verify API requests are properly routed
+
+## 6. Verifying the Setup
+
+To confirm your backend is running correctly:
+1. Check the hosted URL in CodeSandbox's Server Console
+2. Test an API endpoint: `https://your-sandbox-id-3000.app.codesandbox.io/api/your-endpoint`
+
+## Troubleshooting
+
+### CORS Issues
+
+If you encounter CORS errors, update your backend CORS policy:
+
+```typescript
+import cors from "cors";
+
+app.use(cors({ 
+    origin: "*" // Adjust based on your security requirements
+}));
+```
+
+### Common Issues
+
+1. **Changes not reflected:**
+   - Ensure frontend has been restarted
+   - Verify the exact backend URL from CodeSandbox
+   - Check browser console (F12 → Console) for API request errors
+
+2. **Connection failures:**
+   - Confirm backend is running
+   - Verify URL format matches CodeSandbox's format
+   - Check for any network restrictions
+
+## Additional Notes
+
+- Always replace `your-sandbox-id` with your actual CodeSandbox project identifier
+- Consider security implications when setting CORS policies
+- Keep environment variables secure and never commit them to version control
